@@ -1,0 +1,104 @@
+---
+title: 'HW 7: Body Fat Models using GAMs'
+author: 'Paul Harmon, Jake Rich, Steve Durtka, Robert ___, who have not previously worked together and would like the bonus!'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse);library(pander)
+```
+
+## Body Fat Model Development and Assessment
+
+__In groups of up to 4 (unless exempt from group work). Bonus of 3% if you work with someone you have not worked with before.__ 
+
+__The provided data set was obtained from a sample of male body fat percentage measurements.__ 
+
+__The variables for these data are described here:__ http://wiki.stat.ucla.edu/socr/index.php/SOCR_Data_BMI_Regression
+
+__I already removed a couple of potentially influential outliers for you. As the website notes, measuring body fat (accurately) is expensive and complicated and the relationships might not be linear between the predictors and response variables and the predictors might be highly correlated as they are using similar measurements in different parts of the body to predict body fat.__
+
+1) __Fit a linear model that contains all available predictor variables (all linear and additive). Report the VIFs for this model and discuss what that tells you.__
+```{r, include = TRUE, echo = TRUE}
+bf <- read_csv('bf2.csv')
+names(bf)[1] <- "BF"
+
+lm.all <- lm(BF ~., data = bf)
+```
+
+
+2) __Provide our standard 4 plot diagnostic array and discuss the results in all four plots.__
+```{r}
+plot(lm.all) #I'd prefer to do this in ggplot
+diagnostic.df <- as_data_frame(cbind(resid(lm.all),fitted(lm.all),rstudent(lm.all),rstandard(lm.all)))
+names(diagnostic.df) <- c("resid","fitted","student","standard")
+
+resid_plot <- ggplot(diagnostic.df) + geom_point(aes(x = fitted, y = resid)) + geom_smooth(aes(x = fitted, y = resid),method = 'gam')
+
+
+
+
+require(gridExtra)
+plot1 <- qplot(1)
+plot2 <- qplot(1)
+grid.arrange(plot1, plot2, ncol=2)
+
+
+```
+
+
+
+
+3) __Explore the crPlots (from the car package) result from the linear model and discuss what it suggests about the initial model.__
+```{r}
+library('car')
+crPlots(lm.all)
+
+
+```
+
+
+
+
+
+4) __Fit a gam (from the mgcv package) using thin plate shrinkage splines (option bs="cs") with the default k=10 maximum df choice for each predictor variable. Report your model summary and a plot of the model components.__
+
+
+
+5) __When using shrinkage splines, some of the model components may be "shrunk" out of the model. How can you tell this happened here and which variables did it do that with?__
+
+6) __Refit the model without these components. Write out the estimated model. Write a sentence to interpret each model component in this model.__
+
+7) __Report the gam.check results for this reduced model and discuss any potential issues with your choice of k's and the model assumptions.__
+
+8) __Compare the AICs for the full linear model, the initial gam, and the gam once you remove the "shrunk out" terms.__ 
+
+
+
+```{r warning=F,message=F,fig.width=8,fig.height=8}
+library(readr)
+ bf <- read_csv("C:/Users/w76c139/Box Sync/412512_F2017/HWs/bf2.csv")
+pairs(bf)
+
+require(mosaic)
+par(mfrow=c(2,2)) #Cut the following after exploring it quickly.
+plot(BodyFatSiriEqu~Age+Height+Weight_kg+NeckCircumf+ChestCircumf+Abdomen2Circumf+HipCircumf+ThighCircumf+KneeCircumf+AnkleCircumf+ExtendBicepsCircumf+ForearmCircumf+WristCircumf,data=bf)
+
+#CUT THE REST
+
+lm_full<-lm(BodyFatSiriEqu~Age+Height+Weight_kg+NeckCircumf+ChestCircumf+Abdomen2Circumf+HipCircumf+ThighCircumf+KneeCircumf+AnkleCircumf+ExtendBicepsCircumf+ForearmCircumf+WristCircumf,data=bf)
+
+require(mgcv)
+gam_full<-gam(BodyFatSiriEqu~s(Age,bs="ts")+s(Height,bs="ts")+s(Weight_kg,bs="ts")+s(NeckCircumf,bs="ts")+s(ChestCircumf,bs="ts")+s(Abdomen2Circumf,bs="ts")+s(HipCircumf,bs="ts")+s(ThighCircumf,bs="ts")+s(KneeCircumf,bs="ts")+s(AnkleCircumf,bs="ts")+s(ExtendBicepsCircumf,bs="ts")+s(ForearmCircumf,bs="ts")+s(WristCircumf,bs="ts"),data=bf)
+
+summary(gam_full)
+
+gam_red<-gam(BodyFatSiriEqu~s(Age,bs="ts")+s(Height,bs="ts")+s(NeckCircumf,bs="ts")+s(Abdomen2Circumf,bs="ts")+s(HipCircumf,bs="ts")+s(AnkleCircumf,bs="ts")+s(ExtendBicepsCircumf,bs="ts")+s(ForearmCircumf,bs="ts")+s(WristCircumf,bs="ts"),data=bf)
+
+summary(gam_red)
+
+require(car)
+crPlots(lm_full) 
+
+```
