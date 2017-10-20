@@ -65,14 +65,41 @@ crPlots(lm.all)
 4) __Fit a gam (from the mgcv package) using thin plate shrinkage splines (option bs="cs") with the default k=10 maximum df choice for each predictor variable. Report your model summary and a plot of the model components.__
 
 
+```{r}
+#fit a gam
+library(mgcv)
+
+gam_full<-gam(BodyFatSiriEqu~s(Age,bs="ts")+s(Height,bs="ts")+s(Weight_kg,bs="ts")+s(NeckCircumf,bs="ts")+s(ChestCircumf,bs="ts")+s(Abdomen2Circumf,bs="ts")+s(HipCircumf,bs="ts")+s(ThighCircumf,bs="ts")+s(KneeCircumf,bs="ts")+s(AnkleCircumf,bs="ts")+s(ExtendBicepsCircumf,bs="ts")+s(ForearmCircumf,bs="ts")+s(WristCircumf,bs="ts"),data=bf)
+
+```
+
+
 
 5) __When using shrinkage splines, some of the model components may be "shrunk" out of the model. How can you tell this happened here and which variables did it do that with?__
 
+
+
 6) __Refit the model without these components. Write out the estimated model. Write a sentence to interpret each model component in this model.__
+```{r}
+gam_red <- gam(BodyFatSiriEqu~s(Age,bs="ts")+s(Height,bs="ts")+s(NeckCircumf,bs="ts")+s(Abdomen2Circumf,bs="ts")+s(HipCircumf,bs="ts")+s(AnkleCircumf,bs="ts")+s(ExtendBicepsCircumf,bs="ts")+s(ForearmCircumf,bs="ts")+s(WristCircumf,bs="ts"),data=bf)
+```
 
 7) __Report the gam.check results for this reduced model and discuss any potential issues with your choice of k's and the model assumptions.__
 
+```{r}
+gam.check(gam_red)
+```
+
+
 8) __Compare the AICs for the full linear model, the initial gam, and the gam once you remove the "shrunk out" terms.__ 
+```{r}
+AIC_values <- unlist(lapply(list(lm.all,gam_full,gam_red),AIC))
+names <- c("Full Linear Model","Full GAM", "Reduced GAM")
+
+df.new <- as_data_frame(cbind(names, AICvalues))
+pander(df.new, caption = "AIC Values for the Linear Model and GAMs")
+
+```
 
 
 
