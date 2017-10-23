@@ -61,7 +61,7 @@ plot(lm.all, pch = 20) #provides the plots
 
 
 
-
+\newpage
 3) __Explore the crPlots (from the car package) result from the linear model and discuss what it suggests about the initial model.__
 
 The CR plots should show a linear trend if the variables are useful in the model, and should not show nonlinearities. 
@@ -69,7 +69,7 @@ The CR plots should show a linear trend if the variables are useful in the model
 None of the variables appear to be severely nonlinear; however, many do not show strong trends. The Wrist Circumference, Abdomen circumference, and possibly neck circumference, age, and height show linear trends, indicating that they are explaining variation in body fat.  Abdomen circumference appears obviously better than the other variables as it has a strong, linear association with the response. 
 
 
-```{r}
+```{r, fig.align = 'center', fig.width = 5, fig.height = 5}
 
 par(mfrow = c(4,3))
 crPlots(lm.all)
@@ -78,20 +78,28 @@ crPlots(lm.all)
 ```
 
 
+\newpage
 
 4) __Fit a gam (from the mgcv package) using thin plate shrinkage splines (option bs="ts") with the default k=10 maximum df choice for each predictor variable. Report your model summary and a plot of the model components.__
 
 
-```{r}
+```{r, fig.width = 4, fig.height = 4, fig.align = 'center'}
 #fit a gam
 
 
-gam_full <- gam(BF~s(Age,bs="ts") + s(Height,bs="ts")+s(Weight_kg,bs="ts") + s(NeckCircumf,bs="ts") + s(ChestCircumf,bs="ts") + s(Abdomen2Circumf,bs="ts")+s(HipCircumf,bs="ts") + s(ThighCircumf,bs="ts") + s(KneeCircumf,bs="ts")+s(AnkleCircumf,bs="ts") + s(ExtendBicepsCircumf,bs="ts") + s(ForearmCircumf,bs="ts") + s(WristCircumf,bs="ts"),data=bf)
+gam_full <- gam(BF~s(Age,bs="ts") + s(Height,bs="ts")+
+        s(Weight_kg,bs="ts") + s(NeckCircumf,bs="ts") +
+        s(ChestCircumf,bs="ts") + s(Abdomen2Circumf,bs="ts")+
+        s(HipCircumf,bs="ts") + s(ThighCircumf,bs="ts") + 
+        s(KneeCircumf,bs="ts")+s(AnkleCircumf,bs="ts") +
+        s(ExtendBicepsCircumf,bs="ts") + 
+        s(ForearmCircumf,bs="ts") + 
+        s(WristCircumf,bs="ts"),data=bf)
 
 
 summary(gam_full)
-
 par(mfrow = c(3,2))
+par(mar = c(3,3,3,3))
 plot(gam_full)
 
 
