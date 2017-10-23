@@ -1,0 +1,193 @@
+---
+title: 'HW 7: Body Fat Models using GAMs'
+author: 'Paul Harmon, Jake Rich, Steve Durtka, Robert Lester, who have not previously worked together and would like the bonus!'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse);library(pander);library(psych)
+library(mgcv);library(car)
+
+#read in the dataset
+bf <- readr::read_csv('data/bf2.csv')
+```
+
+## Body Fat Model Development and Assessment
+
+__In groups of up to 4 (unless exempt from group work). Bonus of 3% if you work with someone you have not worked with before.__ 
+
+__The provided data set was obtained from a sample of male body fat percentage measurements. The variables for these data are described here:__ http://wiki.stat.ucla.edu/socr/index.php/SOCR_Data_BMI_Regression
+
+1) __Fit a linear model that contains all available predictor variables (all linear and additive). Report the VIFs for this model and discuss what that tells you.__
+
+We fit the model that contains all the available predictors additively. Variables with VIF that are close to 1 are not considered to be highly collinear with the other variables in the model. Those with values between 1 and 5, are moderately correlated and those with large values bigger than 5, are considered highly correlated. The VIF values for each predictor are given in the table below. 
+
+Based on the VIF values, some of the predictors are highly collinear. Weight, Chest Circumference, Abdomen Circumference, Hip Circumference, and Thigh Circumference are all highly collinear with the other variables in the model. Knee, Bicep, Neck, Wrist and Forearm circumferences are moderately correlated, as are age and height, with the variables already in the model. The only value with a relatively small VIF is ankle circumference, so of the group it is the least correlated with the other variables. 
+
+This tells us that the data are redundant in that the variables with the highest VIF values do not add much additional information to the regression and may inflate the standard errors of parameter estimates in the model. 
+
+
+```{r, echo = TRUE,message = FALSE}
+
+names(bf)[1] <- "BF"
+#psych::pairs.panels(bf)
+
+lm.all <- lm(BF ~., data = bf)
+#summary(lm.all)
+
+```
+
+```{r, include = TRUE}
+pander(car::vif(lm.all))
+
+```
+
+\newpage 
+
+2) __Provide our standard 4 plot diagnostic array and discuss the results in all four plots.__
+
+The normal QQ plot looks reasonably linear, so although there might be some slight heavy-tailedness to the residuals, the assumption of normality looks reasonable. 
+
+The residual plot does not show any large differences in variability for the range of fitted values; nor does the the scale-location plot. 
+
+There are a few extremely high-leverage points such as observation 84 (which we assume is a highly obese respondent), but none of the observations tend to look like influential points. 
+
+```{r}
+par(mfrow = c(2,2))
+plot(lm.all, pch = 20) #provides the plots
+
+```
+
+
+
+
+3) __Explore the crPlots (from the car package) result from the linear model and discuss what it suggests about the initial model.__
+
+The CR plots should show a linear trend if the variables are useful in the model, and should not show nonlinearities. 
+
+None of the variables appear to be severely nonlinear; however, many do not show strong trends. The Wrist Circumference, Abdomen circumference, and possibly neck circumference, age, and height show linear trends, indicating that they are explaining variation in body fat.  Abdomen circumference appears obviously better than the other variables as it has a strong, linear association with the response. 
+
+
+```{r}
+
+par(mfrow = c(4,3))
+crPlots(lm.all)
+
+
+```
+
+
+
+4) __Fit a gam (from the mgcv package) using thin plate shrinkage splines (option bs="ts") with the default k=10 maximum df choice for each predictor variable. Report your model summary and a plot of the model components.__
+
+
+```{r}
+#fit a gam
+
+
+gam_full <- gam(BF~s(Age,bs="ts") + s(Height,bs="ts")+s(Weight_kg,bs="ts") + s(NeckCircumf,bs="ts") + s(ChestCircumf,bs="ts") + s(Abdomen2Circumf,bs="ts")+s(HipCircumf,bs="ts") + s(ThighCircumf,bs="ts") + s(KneeCircumf,bs="ts")+s(AnkleCircumf,bs="ts") + s(ExtendBicepsCircumf,bs="ts") + s(ForearmCircumf,bs="ts") + s(WristCircumf,bs="ts"),data=bf)
+
+
+summary(gam_full)
+
+par(mfrow = c(3,2))
+plot(gam_full)
+
+
+
+```
+
+
+
+5) __When using shrinkage splines, some of the model components may be "shrunk" out of the model. How can you tell this happened here and which variables did it do that with?__
+
+
+We check EDF and looked at plots for flat variables 
++ Forearm circ
++ Height
++ Weight (kg)
++ Chest Circ
++ Thigh Circ
++ Knee Circ
++ Forearm Circ
+
+6) __Refit the model without these components. Write out the estimated model. Write a sentence to interpret each model component in this model.__
+
+$$ \hat{BF_{i}} = 19.031 + \hat{s}_{5.216}(Age_i) + \hat{s_{2.42}(NeckCirc_i)} + \hat{s_{6.867}(Abdomen2Circ_i)} + \hat{s_{7.559}(HipCirc_i)} + \hat{s_{3.053}(AnkleCirc_i)} + \hat{s_{4.731}(ExtendBicepsCirc_i)} + \hat{s_{1.135}(WristCirc_i)} $$ 
+
+The only parametric term, the intercept, indicates that the estimated body fat of a person with 0 for all the predictor variables is 19.032. 
+
+The smooth term for Age has estimated df of 5.21, indicating that the true relationship between Age and Body Fat is wigglier than a linear trend. Similarly, the EDF for Neck Circumference, Abdomen Circumference, Hip Circumference, Ankle Circumference, Extended Bicep Circumference all suggested that they are related to Body Fat in a way that is wigglier than a linear trend.  Wrist Circumference had a EDF of 1.135, indicating that while it may be a bit wigglier than would be estimated with a line, it is not substantially more wiggly. 
+
+```{r}
+gam_red <- gam(BF~s(Age,bs="ts")+s(NeckCircumf,bs="ts")+s(Abdomen2Circumf,bs="ts")+s(HipCircumf,bs="ts")+s(AnkleCircumf,bs="ts")+s(ExtendBicepsCircumf,bs="ts") + s(WristCircumf,bs="ts"),data=bf)
+summary(gam_red)
+```
+
+7) __Report the gam.check results for this reduced model and discuss any potential issues with your choice of k's and the model assumptions.__
+
+Big p-values indicates that the choice of K's looks ok. If there were any small p-values the implication would be that more EDF would be necessary to estimate a trend. This is not the case, so the choice of K appears to be appropriate. Only Hip circumference had an EDF that was near K - but they were not all that close (EDF 7.56, K = 9). 
+
+__Model assumptions__: 
++ Normality looks reasonable based on the histogram of residuals and the QQ plot; however, there may be some slight skewness in the negative direction. 
++ Constant variance looks pretty good from the residual plot; for most of the fitted values the spread of observations is somewhat constant. 
++ None of the plots appear to be huge outliers. Even the observation with the large fitted value (likely the most obese respondent) looks to fit the general trend of the data. 
+
+```{r}
+gam.check(gam_red)
+```
+
+
+8) __Compare the AICs for the full linear model, the initial gam, and the gam once you remove the "shrunk out" terms.__ 
+
+Removing the shrunk out terms results in a slightly larger AIC value than the full GAM; however, the difference is 1.98. Given that these are pretty close on the AIC scale, the reduced model should be sufficient.  Regardless, they are both considerably better than the linear model that assumes a linear relationship. 
+
+```{r}
+AIC_values <- unlist(lapply(list(lm.all,gam_full,gam_red),AIC))
+names <- c("Full Linear Model","Full GAM", "Reduced GAM")
+
+df.new <- as.data.frame(cbind(names, round(as.numeric(AIC_values),2)))
+names(df.new) <- c("Names","AIC")
+pander(df.new, caption = "AIC Values for the Linear Model and GAMs")
+
+```
+
+R-Version Information: 
+```{r}
+print(c(sessionInfo()$R.version$version.string,sessionInfo()$R.version$nickname))
+```
+
+
+
+
+
+
+
+
+```{r warning=F,message=F,fig.width=8,fig.height=8,include = FALSE, eval = FALSE}
+library(readr)
+ bf <- read_csv("C:/Users/w76c139/Box Sync/412512_F2017/HWs/bf2.csv")
+pairs(bf)
+
+require(mosaic)
+par(mfrow=c(2,2)) #Cut the following after exploring it quickly.
+plot(BodyFatSiriEqu~Age+Height+Weight_kg+NeckCircumf+ChestCircumf+Abdomen2Circumf+HipCircumf+ThighCircumf+KneeCircumf+AnkleCircumf+ExtendBicepsCircumf+ForearmCircumf+WristCircumf,data=bf)
+
+#CUT THE REST
+
+lm_full<-lm(BodyFatSiriEqu~Age+Height+Weight_kg+NeckCircumf+ChestCircumf+Abdomen2Circumf+HipCircumf+ThighCircumf+KneeCircumf+AnkleCircumf+ExtendBicepsCircumf+ForearmCircumf+WristCircumf,data=bf)
+
+require(mgcv)
+gam_full<-gam(BodyFatSiriEqu~s(Age,bs="ts")+s(Height,bs="ts")+s(Weight_kg,bs="ts")+s(NeckCircumf,bs="ts")+s(ChestCircumf,bs="ts")+s(Abdomen2Circumf,bs="ts")+s(HipCircumf,bs="ts")+s(ThighCircumf,bs="ts")+s(KneeCircumf,bs="ts")+s(AnkleCircumf,bs="ts")+s(ExtendBicepsCircumf,bs="ts")+s(ForearmCircumf,bs="ts")+s(WristCircumf,bs="ts"),data=bf)
+
+summary(gam_full)
+
+gam_red<-gam(BodyFatSiriEqu~s(Age,bs="ts")+s(Height,bs="ts")+s(NeckCircumf,bs="ts")+s(Abdomen2Circumf,bs="ts")+s(HipCircumf,bs="ts")+s(AnkleCircumf,bs="ts")+s(ExtendBicepsCircumf,bs="ts")+s(ForearmCircumf,bs="ts")+s(WristCircumf,bs="ts"),data=bf)
+
+summary(gam_red)
+
+require(car)
+crPlots(lm_full) 
+
+```
